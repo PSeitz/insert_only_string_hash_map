@@ -6,6 +6,7 @@ edition = "2018"
 description = "fast and efficient insert only string hashmap"
 license = "MIT"
 keywords = ["hashmap", "string", "hash", "fnv", "compact"]
+include = ["src/**/*", "LICENSE", "README.md"]
 
 [dev-dependencies]
 fnv = "1.0.7"
