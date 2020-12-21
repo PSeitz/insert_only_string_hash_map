@@ -36,6 +36,10 @@ pub struct StringHashMap<T> {
     mask: u32,
 }
 
+impl<T: Default + Clone + Debug> Default for StringHashMap<T> {
+    fn default() -> Self { StringHashMap::with_power_of_two_size(10) }
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct TableEntry<T> {
     value: T,
