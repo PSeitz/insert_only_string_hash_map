@@ -3,12 +3,7 @@
 extern crate test;
 
 use fnv::FnvHashMap;
-
-
-
-
 use tantivity_term_map::map::TermHashMap;
-
 
 
 #[cfg(test)]
@@ -46,21 +41,27 @@ mod tests {
         contents
     }
 
+    #[inline]
+    fn create_tant_hashmap(contents: &str) -> TermHashMap {
+        let mut map = TermHashMap::new(10);
+        for text in contents.split_whitespace() {
+            map.mutate_or_create(text, |el| {
+                if let Some(el) = el {
+                    el+1
+                }else{
+                    0
+                }
+            });
+        }
+        map
+    }
+
     #[bench]
     fn bench_tant_termmap(b: &mut Bencher) {
         let contents = get_test_string();
 
         b.iter(|| {
-            let mut map = TermHashMap::new(10);
-            for text in contents.split_whitespace() {
-                map.mutate_or_create(text, |el| {
-                    if let Some(el) = el {
-                        el+1
-                    }else{
-                        0
-                    }
-                });
-            }
+            create_tant_hashmap(&contents)
         });
     }
 
@@ -88,16 +89,7 @@ mod tests {
         let contents = get_test_string_full();
 
         b.iter(|| {
-            let mut map = TermHashMap::new(10);
-            for text in contents.split_whitespace() {
-                map.mutate_or_create(text, |el| {
-                    if let Some(el) = el {
-                        el+1
-                    }else{
-                        0
-                    }
-                });
-            }
+            create_tant_hashmap(&contents)
         });
     }
     #[bench]
@@ -150,6 +142,25 @@ mod tests {
             for text in contents.split_whitespace() {
                 let value = map.get_or_create(text, 0);
                 *value += 1;
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_tant_termmap_full_get(b: &mut Bencher) {
+        let contents = get_test_string_full();
+
+        let mut map = create_tant_hashmap(&contents);
+
+        b.iter(|| {
+            for text in contents.split_whitespace() {
+                map.mutate_or_create(text, |el| {
+                    if let Some(el) = el {
+                        el+1
+                    }else{
+                        0
+                    }
+                });
             }
         });
     }

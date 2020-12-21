@@ -33,30 +33,6 @@ impl TinySet {
         TinySet(0u64)
     }
 
-    pub fn clear(&mut self) {
-        self.0 = 0u64;
-    }
-
-    /// Returns the complement of the set in `[0, 64[`.
-    fn complement(self) -> TinySet {
-        TinySet(!self.0)
-    }
-
-    /// Returns true iff the `TinySet` contains the element `el`.
-    pub fn contains(self, el: u32) -> bool {
-        !self.intersect(TinySet::singleton(el)).is_empty()
-    }
-
-    /// Returns the number of elements in the TinySet.
-    pub fn len(self) -> u32 {
-        self.0.count_ones()
-    }
-
-    /// Returns the intersection of `self` and `other`
-    pub fn intersect(self, other: TinySet) -> TinySet {
-        TinySet(self.0 & other.0)
-    }
-
     /// Creates a new `TinySet` containing only one element
     /// within `[0; 64[`
     #[inline(always)]
@@ -103,21 +79,6 @@ impl TinySet {
         }
     }
 
-    /// Returns a `TinySet` than contains all values up
-    /// to limit excluded.
-    ///
-    /// The limit is assumed to be strictly lower than 64.
-    pub fn range_lower(upper_bound: u32) -> TinySet {
-        TinySet((1u64 << u64::from(upper_bound % 64u32)) - 1u64)
-    }
-
-    /// Returns a `TinySet` that contains all values greater
-    /// or equal to the given limit, included. (and up to 63)
-    ///
-    /// The limit is assumed to be strictly lower than 64.
-    pub fn range_greater_or_equal(from_included: u32) -> TinySet {
-        TinySet::range_lower(from_included).complement()
-    }
 }
 
 #[derive(Clone)]
@@ -144,13 +105,6 @@ impl BitSet {
         }
     }
 
-    /// Removes all elements from the `BitSet`.
-    pub fn clear(&mut self) {
-        for tinyset in self.tinysets.iter_mut() {
-            *tinyset = TinySet::empty();
-        }
-    }
-
     /// Returns the number of elements in the `BitSet`.
     pub fn len(&self) -> usize {
         self.len
@@ -166,35 +120,6 @@ impl BitSet {
         } else {
             0
         };
-    }
-
-    /// Returns true iff the elements is in the `BitSet`.
-    pub fn contains(&self, el: u32) -> bool {
-        self.tinyset(el / 64u32).contains(el % 64)
-    }
-
-    /// Returns the first non-empty `TinySet` associated to a bucket lower
-    /// or greater than bucket.
-    ///
-    /// Reminder: the tiny set with the bucket `bucket`, represents the
-    /// elements from `bucket * 64` to `(bucket+1) * 64`.
-    pub(crate) fn first_non_empty_bucket(&self, bucket: u32) -> Option<u32> {
-        self.tinysets[bucket as usize..]
-            .iter()
-            .cloned()
-            .position(|tinyset| !tinyset.is_empty())
-            .map(|delta_bucket| bucket + delta_bucket as u32)
-    }
-
-    pub fn max_value(&self) -> u32 {
-        self.max_value
-    }
-
-    /// Returns the tiny bitset representing the
-    /// the set restricted to the number range from
-    /// `bucket * 64` to `(bucket + 1) * 64`.
-    pub(crate) fn tinyset(&self, bucket: u32) -> TinySet {
-        self.tinysets[bucket as usize]
     }
 
     pub fn iter<'a>(&'a self) -> impl Iterator<Item=u32> + 'a {

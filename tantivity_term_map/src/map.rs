@@ -237,7 +237,7 @@ impl TermHashMap {
 mod tests {
 
     use super::TermHashMap;
-    use std::collections::HashMap;
+    
 
     #[test]
     fn test_hash_map() {
@@ -261,12 +261,5 @@ mod tests {
             });
         }
 
-        let mut vanilla_hash_map = HashMap::new();
-        let mut iter_values = hash_map.iter();
-        while let Some((key, addr, _)) = iter_values.next() {
-            let val: u32 = hash_map.heap.read(addr);
-            vanilla_hash_map.insert(key.to_owned(), val);
-        }
-        assert_eq!(vanilla_hash_map.len(), 2);
     }
 }
