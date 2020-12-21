@@ -25,16 +25,17 @@ Memory Consumption is lower than with a regular hashmap, 30% lower in the [compa
 ### Bench
 
 ```
-Running target/release/deps/bench-f01c908733fbb7f4
-
-running 8 tests
-test tests::bench_fnv                            ... bench:     137,678 ns/iter (+/- 10,262)
-test tests::bench_fnv_full                       ... bench:   5,021,742 ns/iter (+/- 251,143)
-test tests::bench_hasmap                         ... bench:     118,997 ns/iter (+/- 8,068)
-test tests::bench_hasmap_full                    ... bench:   4,858,801 ns/iter (+/- 242,614)
-test tests::bench_hasmap_full_large_struct       ... bench:   5,634,283 ns/iter (+/- 293,666)
-test tests::bench_tant_termmap                   ... bench:     136,552 ns/iter (+/- 6,591)
-test tests::bench_tant_termmap_full              ... bench:   5,659,779 ns/iter (+/- 345,914)
-test tests::bench_tant_termmap_full_large_struct ... bench:   5,769,806 ns/iter (+/- 371,247)
+running 11 tests
+test tests::bench_fnv                            ... bench:     141,906 ns/iter (+/- 9,414)
+test tests::bench_fnv_full                       ... bench:   5,180,066 ns/iter (+/- 392,488)
+test tests::bench_fnv_full_get                   ... bench:   3,914,865 ns/iter (+/- 210,328)
+test tests::bench_hasmap                         ... bench:     124,689 ns/iter (+/- 5,389)
+test tests::bench_hasmap_full                    ... bench:   5,006,276 ns/iter (+/- 166,848)
+test tests::bench_hasmap_full_get                ... bench:   4,015,903 ns/iter (+/- 149,086)
+test tests::bench_hasmap_full_large_struct       ... bench:   5,533,528 ns/iter (+/- 201,944)
+test tests::bench_tant_termmap                   ... bench:     123,695 ns/iter (+/- 6,106)
+test tests::bench_tant_termmap_full              ... bench:   5,454,897 ns/iter (+/- 157,208)
+test tests::bench_tant_termmap_full_get          ... bench:   5,047,846 ns/iter (+/- 181,768)
+test tests::bench_tant_termmap_full_large_struct ... bench:   5,644,069 ns/iter (+/- 269,745)
 ```
 

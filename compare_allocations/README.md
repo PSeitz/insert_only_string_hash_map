@@ -1,9 +1,14 @@
 
 
 
-Compares allocations between inohashmap, tantivity interal used hashmap and fnv
+Compares allocations between inohashmap, tantivity internal used hashmap and fnv
 
+```
+cargo run --bin inohash 
+cargo run --bin tant_termmap
+cargo run --bin fnv
 
+```
 
 ### DHAT Profile
 ```
@@ -20,8 +25,8 @@ dhat: The data in dhat-heap.json is viewable with dhat/dh_view.html
    Compiling compare_allocations v0.1.0 (/home/pascal/Development/insert_only_string_hash_map/compare_allocations)
     Finished dev [unoptimized + debuginfo] target(s) in 0.69s
      Running `target/debug/tant_termmap`
-dhat: Total:     28,672,320 bytes in 150 blocks
-dhat: At t-gmax: 2,359,328 bytes in 5 blocks
+dhat: Total:     7,863,360 bytes in 140 blocks
+dhat: At t-gmax: 661,536 bytes in 6 blocks
 dhat: At t-end:  0 bytes in 0 blocks
 dhat: The data in dhat-heap.json is viewable with dhat/dh_view.html
 ➜  compare_allocations git:(main) ✗ cargo run --bin fnv         
