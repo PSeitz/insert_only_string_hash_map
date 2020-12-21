@@ -125,8 +125,9 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     }
 
     /// Doubles the size of the table
+    /// Creates a new table and moves all entries to the new table
     #[cold]
-    pub fn resize(&mut self) {
+    fn resize(&mut self) {
         let mut table: Vec<TableEntry<T>> = vec![];
         table.resize(self.table.len() * 2, TableEntry::default());
         self.mask = table.len() as u32 - 1;
@@ -143,7 +144,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     }
 
     #[inline]
-    pub(crate) fn put_in_bucket(&mut self, hash: usize, el: &str, value: T) -> &mut TableEntry<T> {
+    fn put_in_bucket(&mut self, hash: usize, el: &str, value: T) -> &mut TableEntry<T> {
         let pos = BytesRef(self.string_data.len() as u32);
 
         encode_varint_into(&mut self.string_data, el.len() as u32);    

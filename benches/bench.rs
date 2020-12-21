@@ -136,6 +136,23 @@ mod tests {
             }
         });
     }
+    #[bench]
+    fn bench_hasmap_full_get(b: &mut Bencher) {
+        let contents = get_test_string_full();
+
+        let mut map = StringHashMap::<u32>::with_power_of_two_size(10);
+        for text in contents.split_whitespace() {
+            let value = map.get_or_create(text, 0);
+            *value += 1;
+        }
+
+        b.iter(|| {
+            for text in contents.split_whitespace() {
+                let value = map.get_or_create(text, 0);
+                *value += 1;
+            }
+        });
+    }
 
     #[bench]
     fn bench_fnv(b: &mut Bencher) {
@@ -155,6 +172,21 @@ mod tests {
 
         b.iter(|| {
             let mut map: FnvHashMap<String, u32> = FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
+            for text in contents.split_whitespace() {
+                let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
+                *data  += 1;
+            }
+        });
+    }
+    #[bench]
+    fn bench_fnv_full_get(b: &mut Bencher) {
+        let contents = get_test_string_full();
+        let mut map: FnvHashMap<String, u32> = FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
+        for text in contents.split_whitespace() {
+            let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
+            *data  += 1;
+        }
+        b.iter(|| {
             for text in contents.split_whitespace() {
                 let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
                 *data  += 1;
