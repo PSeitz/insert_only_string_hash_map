@@ -3,7 +3,7 @@ name = "inohashmap"
 version = "0.1.0"
 authors = ["Pascal Seitz <pascal.seitz@gmail.com>"]
 edition = "2018"
-description = "insert only string hashmap"
+description = "fast and efficient insert only string hashmap"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
