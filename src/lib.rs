@@ -66,6 +66,48 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     }
 
     #[inline]
+    pub fn len(&self) -> usize {
+        self.occupied
+    }
+
+    #[inline]
+    pub fn shrink_to_fit(&mut self) {
+        self.string_data.shrink_to_fit();
+        self.table.shrink_to_fit();
+    }
+
+    #[inline]
+    pub fn get(&mut self, el: &str) -> Option<&T> {
+        let mut probe = self.get_probe(el);
+        let mut hash = probe.next_probe() as usize;
+
+        loop {
+            let entry = self.get_entry(hash);
+            if entry.pointer.is_null() {
+                return None;
+            } else if self.read_string(entry.pointer) == el {
+                return Some(&self.get_entry(hash as usize).value);
+            }
+            hash = probe.next_probe() as usize;
+        }
+    }
+    #[inline]
+    pub fn get_mut(&mut self, el: &str) -> Option<&mut T> {
+        let mut probe = self.get_probe(el);
+        let mut hash = probe.next_probe() as usize;
+
+        loop {
+            let entry = self.get_entry(hash);
+            if entry.pointer.is_null() {
+                return None;
+            } else if self.read_string(entry.pointer) == el {
+                return Some(&mut self.get_entry_mut(hash as usize).value);
+            }
+            hash = probe.next_probe() as usize;
+        }
+    }
+
+    #[inline]
     pub fn get_or_create(&mut self, el: &str, value: T) -> &mut T {
         // check load factor, resize when 0.5
         // if self.occupied as f32 * 1.5 > self.table.len() as f32 {
@@ -112,11 +154,48 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     }
 
     #[inline]
-    pub fn get_values(&self) -> impl Iterator<Item = &T> {
+    pub fn values(&self) -> impl Iterator<Item = &T> {
         self.table
             .iter()
             .filter(|entry| !entry.pointer.is_null())
             .map(|entry| &entry.value)
+    }
+    #[inline]
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.table
+            .iter_mut()
+            .filter(|entry| !entry.pointer.is_null())
+            .map(|entry| &mut entry.value)
+    }
+    #[inline]
+    pub fn keys(& self) -> KeyIterator<'_, T> {
+        KeyIterator{
+            map:self,
+            pos:0
+        }
+    }
+
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &T)> {
+        self.table
+            .iter()
+            .filter(|entry| !entry.pointer.is_null())
+            .map(move |entry| (self.read_string(entry.pointer), &entry.value))
+    }
+
+    #[inline]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&str, &mut T)> {
+        // You bested me borrow checker
+        // Cast should be fine, since self lives als long as the iter and all data accessed in read_string is immutable
+        // I don't know why but mutable access doesn't work here without errors
+        let cheated_self = unsafe { std::mem::transmute::<&mut Self, &Self>(self) };
+        self.table
+            .iter_mut()
+            .filter(|entry| !entry.pointer.is_null())
+            .map(move |entry| {
+                let text = cheated_self.read_string(entry.pointer);
+                (text, &mut entry.value)
+            })
     }
 
     #[inline]
@@ -181,6 +260,32 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     }
 }
 
+#[derive(Debug)]
+pub struct KeyIterator<'a, T> {
+    pub map: &'a StringHashMap<T>,
+    pos: usize,
+}
+
+impl<'a, T> Iterator for KeyIterator<'a, T> {
+    type Item = &'a str;
+
+    #[inline]
+    fn next(&mut self) -> Option<&'a str> {
+        if self.pos == self.map.string_data.len() {
+            None
+        }else{
+            let length_string = decode_varint_slice(&self.map.string_data, &mut self.pos).unwrap();
+            let text = unsafe {
+                std::str::from_utf8_unchecked(
+                    &self.map.string_data.get_unchecked(self.pos..self.pos + length_string as usize),
+                )
+            };
+            self.pos += length_string as usize;
+            Some(text)
+        }
+    }
+}
+
 struct QuadraticProbing {
     hash: u32,
     i: u32,
@@ -222,7 +327,7 @@ mod tests {
             counter += 1;
         }
 
-        let sum: u32 = map.get_values().sum();
+        let sum: u32 = map.values().sum();
         assert_eq!(sum, counter);
         assert_eq!(map.string_data.len() < 1_000_000, true);
 
@@ -238,11 +343,11 @@ mod tests {
 
     }
     #[test]
-    fn get_values() {
+    fn values() {
         let mut hashmap = StringHashMap::<u32>::new();
         hashmap.get_or_create("blub", 1);
 
-        let val: u32 = hashmap.get_values().sum();
+        let val: u32 = hashmap.values().sum();
         assert_eq!(val, 1);
     }
     #[test]
@@ -281,5 +386,38 @@ mod tests {
         assert_eq!(hashmap.get_or_create("blub1", 0), &3);
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_or_create("blub3", 0), &5);
+    }
+    #[test]
+    fn test_iter() {
+        let mut hashmap = StringHashMap::<u32>::with_power_of_two_size(1);
+        hashmap.get_or_create("blub1", 3);
+        hashmap.get_or_create("blub2", 4);
+        hashmap.get_or_create("blub3", 5);
+        // // check values after resize
+        assert_eq!(hashmap.get_or_create("blub1", 0), &3);
+        assert_eq!(hashmap.get_or_create("blub2", 0), &4);
+        assert_eq!(hashmap.get_or_create("blub3", 0), &5);
+
+        assert_eq!(hashmap.keys().collect::<Vec<_>>(), &["blub1", "blub2", "blub3"]);
+        assert_eq!(hashmap.values().collect::<Vec<_>>(), &[&5, &4, &3]);
+        assert_eq!(hashmap.values_mut().collect::<Vec<_>>(), &[&5, &4, &3]);
+        assert_eq!(hashmap.iter().collect::<Vec<_>>(), &[("blub3", &5), ("blub2", &4), ("blub1", &3), ]);
+        assert_eq!(hashmap.iter_mut().collect::<Vec<_>>(), &[("blub3", &mut 5), ("blub2", &mut 4), ("blub1", &mut 3), ]);
+    }
+
+    #[test]
+    fn test_get() {
+        let mut hashmap = StringHashMap::<u32>::with_power_of_two_size(1);
+        hashmap.get_or_create("blub1", 3);
+        hashmap.get_or_create("blub2", 4);
+        hashmap.get_or_create("blub3", 5);
+        // // check values after resize
+        assert_eq!(hashmap.get_or_create("blub1", 0), &3);
+        assert_eq!(hashmap.get_or_create("blub2", 0), &4);
+        assert_eq!(hashmap.get_mut("blub3"), Some(&mut 5));
+        assert_eq!(hashmap.get("blub3"), Some(& 5));
+
+        hashmap.shrink_to_fit();
+
     }
 }
