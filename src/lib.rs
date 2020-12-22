@@ -73,6 +73,11 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     }
 
     #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.occupied == 0
+    }
+
+    #[inline]
     pub fn shrink_to_fit(&mut self) {
         self.string_data.shrink_to_fit();
         self.table.shrink_to_fit();
@@ -136,8 +141,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     fn get_probe(&self, el: &str) -> QuadraticProbing {
         let hash = fnv32a_yoshimitsu_hasher(el.as_bytes());
         let hash = hash >> self.bitshift;
-        let probe = QuadraticProbing::compute(hash, self.mask);
-        probe
+        QuadraticProbing::compute(hash, self.mask)
     }
 
     #[inline]
@@ -187,7 +191,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
         // You bested me borrow checker
         // Cast should be fine, since self lives als long as the iter and all data accessed in read_string is immutable
         // I don't know why but mutable access doesn't work here without errors
-        let cheated_self = unsafe { std::mem::transmute::<&mut Self, &Self>(self) };
+        let cheated_self = unsafe { &*(self as *mut StringHashMap<T> as *const StringHashMap<T>)};
         self.table
             .iter_mut()
             .filter(|entry| !entry.pointer.is_null())
@@ -396,7 +400,7 @@ mod tests {
         hashmap.get_or_create("blub1", 3);
         hashmap.get_or_create("blub2", 4);
         hashmap.get_or_create("blub3", 5);
-        // // check values after resize
+
         assert_eq!(hashmap.get_or_create("blub1", 0), &3);
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_or_create("blub3", 0), &5);
@@ -423,7 +427,7 @@ mod tests {
         hashmap.get_or_create("blub1", 3);
         hashmap.get_or_create("blub2", 4);
         hashmap.get_or_create("blub3", 5);
-        // // check values after resize
+
         assert_eq!(hashmap.get_or_create("blub1", 0), &3);
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_mut("blub3"), Some(&mut 5));
@@ -436,10 +440,13 @@ mod tests {
     #[test]
     fn test_len() {
         let mut hashmap = StringHashMap::<u32>::with_power_of_two_size(1);
+        assert_eq!(hashmap.is_empty(), true);
         hashmap.get_or_create("blub1", 3);
+        assert_eq!(hashmap.len(), 1);
+        assert_eq!(hashmap.is_empty(), false);
         hashmap.get_or_create("blub2", 4);
         hashmap.get_or_create("blub3", 5);
-        // // check values after resize
         assert_eq!(hashmap.len(), 3);
+        assert_eq!(hashmap.is_empty(), false);
     }
 }
