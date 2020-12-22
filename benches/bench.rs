@@ -5,7 +5,6 @@ extern crate test;
 use fnv::FnvHashMap;
 use tantivity_term_map::map::TermHashMap;
 
-
 #[cfg(test)]
 mod tests {
 
@@ -20,7 +19,7 @@ mod tests {
 
     use super::*;
     use inohashmap::StringHashMap;
-    
+
     use std::io::Read;
     use test::Bencher;
 
@@ -45,13 +44,7 @@ mod tests {
     fn create_tant_hashmap(contents: &str) -> TermHashMap {
         let mut map = TermHashMap::new(10);
         for text in contents.split_whitespace() {
-            map.mutate_or_create(text, |el| {
-                if let Some(el) = el {
-                    el+1
-                }else{
-                    0
-                }
-            });
+            map.mutate_or_create(text, |el| if let Some(el) = el { el + 1 } else { 0 });
         }
         map
     }
@@ -60,9 +53,7 @@ mod tests {
     fn bench_tant_termmap(b: &mut Bencher) {
         let contents = get_test_string();
 
-        b.iter(|| {
-            create_tant_hashmap(&contents)
-        });
+        b.iter(|| create_tant_hashmap(&contents));
     }
 
     #[bench]
@@ -76,7 +67,7 @@ mod tests {
                     if let Some(mut el) = el {
                         el.counter1 += 1;
                         el
-                    }else{
+                    } else {
                         MoreMetaData::default()
                     }
                 });
@@ -88,9 +79,7 @@ mod tests {
     fn bench_tant_termmap_full(b: &mut Bencher) {
         let contents = get_test_string_full();
 
-        b.iter(|| {
-            create_tant_hashmap(&contents)
-        });
+        b.iter(|| create_tant_hashmap(&contents));
     }
     #[bench]
     fn bench_hasmap_full_large_struct(b: &mut Bencher) {
@@ -154,13 +143,7 @@ mod tests {
 
         b.iter(|| {
             for text in contents.split_whitespace() {
-                map.mutate_or_create(text, |el| {
-                    if let Some(el) = el {
-                        el+1
-                    }else{
-                        0
-                    }
-                });
+                map.mutate_or_create(text, |el| if let Some(el) = el { el + 1 } else { 0 });
             }
         });
     }
@@ -170,10 +153,11 @@ mod tests {
         let contents = get_test_string();
 
         b.iter(|| {
-            let mut map: FnvHashMap<String, u32> = FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
+            let mut map: FnvHashMap<String, u32> =
+                FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
             for text in contents.split_whitespace() {
-                let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
-                *data  += 1;
+                let data = get_or_insert_prefer_get(&mut map, text, || 0);
+                *data += 1;
             }
         });
     }
@@ -182,31 +166,37 @@ mod tests {
         let contents = get_test_string_full();
 
         b.iter(|| {
-            let mut map: FnvHashMap<String, u32> = FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
+            let mut map: FnvHashMap<String, u32> =
+                FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
             for text in contents.split_whitespace() {
-                let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
-                *data  += 1;
+                let data = get_or_insert_prefer_get(&mut map, text, || 0);
+                *data += 1;
             }
         });
     }
     #[bench]
     fn bench_fnv_full_get(b: &mut Bencher) {
         let contents = get_test_string_full();
-        let mut map: FnvHashMap<String, u32> = FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
+        let mut map: FnvHashMap<String, u32> =
+            FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
         for text in contents.split_whitespace() {
-            let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
-            *data  += 1;
+            let data = get_or_insert_prefer_get(&mut map, text, || 0);
+            *data += 1;
         }
         b.iter(|| {
             for text in contents.split_whitespace() {
-                let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
-                *data  += 1;
+                let data = get_or_insert_prefer_get(&mut map, text, || 0);
+                *data += 1;
             }
         });
     }
 }
 
-fn get_or_insert_prefer_get<'a, T, F>(map: *mut FnvHashMap<String, T>, key: &str, mut constructor: F) -> &'a mut T
+fn get_or_insert_prefer_get<'a, T, F>(
+    map: *mut FnvHashMap<String, T>,
+    key: &str,
+    mut constructor: F,
+) -> &'a mut T
 where
     F: FnMut() -> T,
 {

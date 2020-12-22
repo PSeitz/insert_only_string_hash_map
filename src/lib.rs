@@ -21,7 +21,7 @@ assert_eq!(*val, 2);
 use crate::bytesref::BytesRef;
 use crate::hasher::fnv32a_yoshimitsu_hasher;
 use core::fmt::Debug;
-use vint32::{encode_varint_into, decode_varint_slice};
+use vint32::{decode_varint_slice, encode_varint_into};
 mod bytesref;
 pub mod hasher;
 
@@ -37,7 +37,9 @@ pub struct StringHashMap<T> {
 }
 
 impl<T: Default + Clone + Debug> Default for StringHashMap<T> {
-    fn default() -> Self { StringHashMap::with_power_of_two_size(10) }
+    fn default() -> Self {
+        StringHashMap::with_power_of_two_size(10)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -168,11 +170,8 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
             .map(|entry| &mut entry.value)
     }
     #[inline]
-    pub fn keys(& self) -> KeyIterator<'_, T> {
-        KeyIterator{
-            map:self,
-            pos:0
-        }
+    pub fn keys(&self) -> KeyIterator<'_, T> {
+        KeyIterator { map: self, pos: 0 }
     }
 
     #[inline]
@@ -230,7 +229,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
     fn put_in_bucket(&mut self, hash: usize, el: &str, value: T) -> &mut TableEntry<T> {
         let pos = BytesRef(self.string_data.len() as u32);
 
-        encode_varint_into(&mut self.string_data, el.len() as u32);    
+        encode_varint_into(&mut self.string_data, el.len() as u32);
 
         self.string_data.extend_from_slice(el.as_bytes());
         // unsafe {
@@ -254,7 +253,9 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
         let length_string = decode_varint_slice(&self.string_data, &mut pos).unwrap();
         unsafe {
             std::str::from_utf8_unchecked(
-                &self.string_data.get_unchecked(pos..pos + length_string as usize),
+                &self
+                    .string_data
+                    .get_unchecked(pos..pos + length_string as usize),
             )
         }
     }
@@ -273,11 +274,14 @@ impl<'a, T> Iterator for KeyIterator<'a, T> {
     fn next(&mut self) -> Option<&'a str> {
         if self.pos == self.map.string_data.len() {
             None
-        }else{
+        } else {
             let length_string = decode_varint_slice(&self.map.string_data, &mut self.pos).unwrap();
             let text = unsafe {
                 std::str::from_utf8_unchecked(
-                    &self.map.string_data.get_unchecked(self.pos..self.pos + length_string as usize),
+                    &self
+                        .map
+                        .string_data
+                        .get_unchecked(self.pos..self.pos + length_string as usize),
                 )
             };
             self.pos += length_string as usize;
@@ -340,7 +344,6 @@ mod tests {
         // dbg!(num_two_time_probe);
         // dbg!(num_more_than_one_time_probe);
         // dbg!(map.existing);
-
     }
     #[test]
     fn values() {
@@ -398,11 +401,20 @@ mod tests {
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_or_create("blub3", 0), &5);
 
-        assert_eq!(hashmap.keys().collect::<Vec<_>>(), &["blub1", "blub2", "blub3"]);
+        assert_eq!(
+            hashmap.keys().collect::<Vec<_>>(),
+            &["blub1", "blub2", "blub3"]
+        );
         assert_eq!(hashmap.values().collect::<Vec<_>>(), &[&5, &4, &3]);
         assert_eq!(hashmap.values_mut().collect::<Vec<_>>(), &[&5, &4, &3]);
-        assert_eq!(hashmap.iter().collect::<Vec<_>>(), &[("blub3", &5), ("blub2", &4), ("blub1", &3), ]);
-        assert_eq!(hashmap.iter_mut().collect::<Vec<_>>(), &[("blub3", &mut 5), ("blub2", &mut 4), ("blub1", &mut 3), ]);
+        assert_eq!(
+            hashmap.iter().collect::<Vec<_>>(),
+            &[("blub3", &5), ("blub2", &4), ("blub1", &3),]
+        );
+        assert_eq!(
+            hashmap.iter_mut().collect::<Vec<_>>(),
+            &[("blub3", &mut 5), ("blub2", &mut 4), ("blub1", &mut 3),]
+        );
     }
 
     #[test]
@@ -415,12 +427,11 @@ mod tests {
         assert_eq!(hashmap.get_or_create("blub1", 0), &3);
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_mut("blub3"), Some(&mut 5));
-        assert_eq!(hashmap.get("blub3"), Some(& 5));
+        assert_eq!(hashmap.get("blub3"), Some(&5));
         assert_eq!(hashmap.get("blub1000"), None);
         assert_eq!(hashmap.get_mut("blub1000"), None);
 
         hashmap.shrink_to_fit();
-
     }
     #[test]
     fn test_len() {
@@ -430,6 +441,5 @@ mod tests {
         hashmap.get_or_create("blub3", 5);
         // // check values after resize
         assert_eq!(hashmap.len(), 3);
-
     }
 }
