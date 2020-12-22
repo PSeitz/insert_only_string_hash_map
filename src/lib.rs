@@ -191,6 +191,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
         // You bested me borrow checker
         // Cast should be fine, since self lives als long as the iter and all data accessed in read_string is immutable
         // I don't know why but mutable access doesn't work here without errors
+        // Should be possible to fix by creating an extra Iter struct like in keys
         let cheated_self = unsafe { &*(self as *mut StringHashMap<T> as *const StringHashMap<T>)};
         self.table
             .iter_mut()
