@@ -416,8 +416,20 @@ mod tests {
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_mut("blub3"), Some(&mut 5));
         assert_eq!(hashmap.get("blub3"), Some(& 5));
+        assert_eq!(hashmap.get("blub1000"), None);
+        assert_eq!(hashmap.get_mut("blub1000"), None);
 
         hashmap.shrink_to_fit();
+
+    }
+    #[test]
+    fn test_len() {
+        let mut hashmap = StringHashMap::<u32>::with_power_of_two_size(1);
+        hashmap.get_or_create("blub1", 3);
+        hashmap.get_or_create("blub2", 4);
+        hashmap.get_or_create("blub3", 5);
+        // // check values after resize
+        assert_eq!(hashmap.len(), 3);
 
     }
 }

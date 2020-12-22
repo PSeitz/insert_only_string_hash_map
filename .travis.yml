@@ -13,7 +13,7 @@ after_success: |
   # bash <(curl https://raw.githubusercontent.com/xd009642/tarpaulin/master/travis-install.sh)
   curl -sL https://github.com/xd009642/tarpaulin/releases/download/0.16.0/cargo-tarpaulin-0.16.0-travis.tar.gz | tar xvz -C $HOME/.cargo/bin
   # Uncomment the following line for coveralls.io
-  RAYON_NUM_THREADS=1 cargo tarpaulin --all --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
+  RAYON_NUM_THREADS=1 cargo tarpaulin --exclude-files benches/* --exclude-files tantivity_term_map/* --all --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
 
   # Uncomment the following two lines create and upload a report for codecov.io
   RAYON_NUM_THREADS=1 cargo tarpaulin --out Xml
