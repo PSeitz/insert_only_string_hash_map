@@ -305,7 +305,7 @@ impl QuadraticProbing {
     #[inline]
     fn next_probe(&mut self) -> u32 {
         self.i += 1;
-        (self.hash + (self.i + self.i * self.i) >> 1) & self.mask
+        ((self.hash + (self.i + self.i * self.i)) >> 1) & self.mask
         // (self.hash + (self.i * self.i)) & self.mask
     }
 }
