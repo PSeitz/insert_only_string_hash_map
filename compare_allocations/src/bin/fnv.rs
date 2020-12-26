@@ -17,7 +17,7 @@ fn main() {
     let _dhat = Dhat::start_heap_profiling();
     for _ in 0..10 {
         let mut map: FnvHashMap<String, u32> = FnvHashMap::with_capacity_and_hasher(1 << 10, Default::default());
-        for text in contents.split_whitespace() {
+        for text in contents.split_whitespace().filter(|el|el.len()==8) {
             let data = get_or_insert_prefer_get(&mut map, text, || { 0 });
             *data  += 1;
         }

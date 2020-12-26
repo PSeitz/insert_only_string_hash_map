@@ -11,3 +11,7 @@ dhat = "0.2.1"
 fnv = "1.0.7"
 inohashmap = { path = "../" }
 tantivity_term_map = { path = "../tantivity_term_map" }
+
+[profile.release]
+codegen-units = 1
+debug = true

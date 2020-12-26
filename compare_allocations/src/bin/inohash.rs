@@ -16,7 +16,7 @@ fn main() {
     let _dhat = Dhat::start_heap_profiling();
     for _ in 0..10 {
         let mut map = StringHashMap::<u32>::with_power_of_two_size(10);
-        for text in contents.split_whitespace() {
+        for text in contents.split_whitespace().filter(|el|el.len()==8) {
             let value = map.get_or_create(text, 0);
             *value += 1;
         }

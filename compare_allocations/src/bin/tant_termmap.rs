@@ -16,7 +16,7 @@ fn main() {
     let _dhat = Dhat::start_heap_profiling();
     for _ in 0..10 {
         let mut map = TermHashMap::new(10);
-        for text in contents.split_whitespace() {
+        for text in contents.split_whitespace().filter(|el|el.len()==8) {
             map.mutate_or_create(text, |el| {
                 if let Some(el) = el {
                     el+1

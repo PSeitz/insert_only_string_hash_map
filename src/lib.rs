@@ -18,17 +18,20 @@ assert_eq!(*val, 2);
 
 */
 
+use crate::string_data::OffsetInformation;
+use crate::string_data::StringData;
 use crate::bytesref::BytesRef;
 use crate::hasher::fnv32a_yoshimitsu_hasher;
 use core::fmt::Debug;
 use vint32::{decode_varint_slice, encode_varint_into};
 mod bytesref;
+mod string_data;
 pub mod hasher;
 
 #[derive(Debug)]
 pub struct StringHashMap<T> {
     /// contains string in compressed format
-    pub(crate) string_data: Vec<u8>,
+    pub(crate) string_data: StringData,
     /// pointer to string data and value
     pub(crate) table: Vec<TableEntry<T>>,
     bitshift: usize,
@@ -45,7 +48,7 @@ impl<T: Default + Clone + Debug> Default for StringHashMap<T> {
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct TableEntry<T> {
     value: T,
-    pointer: BytesRef,
+    pointer: OffsetInformation,
 }
 
 impl<T: Default + Clone + Debug> StringHashMap<T> {
@@ -55,7 +58,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
         let mut table = vec![];
         table.resize(1 << shift, TableEntry::default());
         StringHashMap {
-            string_data: Vec::with_capacity((1 << shift) * 2),
+            string_data: StringData::default(),
             mask: table.len() as u32 - 1,
             table,
             bitshift: 32 - power_of_two,
@@ -114,7 +117,7 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
         }
     }
 
-    #[inline]
+    #[inline(never)]
     pub fn get_or_create(&mut self, el: &str, value: T) -> &mut T {
         // check load factor, resize when 0.5
         // if self.occupied as f32 * 1.5 > self.table.len() as f32 {
@@ -173,10 +176,10 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
             .filter(|entry| !entry.pointer.is_null())
             .map(|entry| &mut entry.value)
     }
-    #[inline]
-    pub fn keys(&self) -> KeyIterator<'_, T> {
-        KeyIterator { map: self, pos: 0 }
-    }
+    // #[inline]
+    // pub fn keys(&self) -> KeyIterator<'_, T> {
+    //     KeyIterator { map: self, pos: 0 }
+    // }
 
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = (&str, &T)> {
@@ -232,11 +235,12 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
 
     #[inline]
     fn put_in_bucket(&mut self, hash: usize, el: &str, value: T) -> &mut TableEntry<T> {
-        let pos = BytesRef(self.string_data.len() as u32);
+        let offset_info = self.string_data.insert(el);
 
-        encode_varint_into(&mut self.string_data, el.len() as u32);
+        // let pos = BytesRef(self.string_data.len() as u32);
+        // encode_varint_into(&mut self.string_data, el.len() as u32);
+        // self.string_data.extend_from_slice(el.as_bytes());
 
-        self.string_data.extend_from_slice(el.as_bytes());
         // unsafe {
         //     self.string_data.reserve(el.len());
         //     let target = self.string_data.as_mut_ptr().add(self.string_data.len());
@@ -247,53 +251,55 @@ impl<T: Default + Clone + Debug> StringHashMap<T> {
         let entry = self.get_entry_mut(hash);
         *entry = TableEntry {
             value,
-            pointer: pos,
+            pointer: offset_info,
         };
         entry
     }
 
     #[inline]
-    pub(crate) fn read_string(&self, pos: BytesRef) -> &str {
-        let mut pos = pos.addr() as usize;
-        let length_string = decode_varint_slice(&self.string_data, &mut pos).unwrap();
-        unsafe {
-            std::str::from_utf8_unchecked(
-                &self
-                    .string_data
-                    .get_unchecked(pos..pos + length_string as usize),
-            )
-        }
+    pub(crate) fn read_string(&self, pos: OffsetInformation) -> &str {
+        self.string_data.read_string(pos)
+
+        // let mut pos = pos.addr() as usize;
+        // let length_string = decode_varint_slice(&self.string_data, &mut pos).unwrap();
+        // unsafe {
+        //     std::str::from_utf8_unchecked(
+        //         &self
+        //             .string_data
+        //             .get_unchecked(pos..pos + length_string as usize),
+        //     )
+        // }
     }
 }
 
-#[derive(Debug)]
-pub struct KeyIterator<'a, T> {
-    pub map: &'a StringHashMap<T>,
-    pos: usize,
-}
+// #[derive(Debug)]
+// pub struct KeyIterator<'a, T> {
+//     pub map: &'a StringHashMap<T>,
+//     pos: usize,
+// }
 
-impl<'a, T> Iterator for KeyIterator<'a, T> {
-    type Item = &'a str;
+// impl<'a, T> Iterator for KeyIterator<'a, T> {
+//     type Item = &'a str;
 
-    #[inline]
-    fn next(&mut self) -> Option<&'a str> {
-        if self.pos == self.map.string_data.len() {
-            None
-        } else {
-            let length_string = decode_varint_slice(&self.map.string_data, &mut self.pos).unwrap();
-            let text = unsafe {
-                std::str::from_utf8_unchecked(
-                    &self
-                        .map
-                        .string_data
-                        .get_unchecked(self.pos..self.pos + length_string as usize),
-                )
-            };
-            self.pos += length_string as usize;
-            Some(text)
-        }
-    }
-}
+//     #[inline]
+//     fn next(&mut self) -> Option<&'a str> {
+//         if self.pos == self.map.string_data.len() {
+//             None
+//         } else {
+//             let length_string = decode_varint_slice(&self.map.string_data, &mut self.pos).unwrap();
+//             let text = unsafe {
+//                 std::str::from_utf8_unchecked(
+//                     &self
+//                         .map
+//                         .string_data
+//                         .get_unchecked(self.pos..self.pos + length_string as usize),
+//                 )
+//             };
+//             self.pos += length_string as usize;
+//             Some(text)
+//         }
+//     }
+// }
 
 struct QuadraticProbing {
     hash: u32,
@@ -310,8 +316,10 @@ impl QuadraticProbing {
     #[inline]
     fn next_probe(&mut self) -> u32 {
         self.i += 1;
-        ((self.hash + (self.i + self.i * self.i)) >> 1) & self.mask
+        // ((self.hash + (self.i + self.i * self.i)) >> 1) & self.mask
         // (self.hash + (self.i * self.i)) & self.mask
+
+        (self.hash + self.i) & self.mask
     }
 }
 
@@ -338,7 +346,7 @@ mod tests {
 
         let sum: u32 = map.values().sum();
         assert_eq!(sum, counter);
-        assert_eq!(map.string_data.len() < 1_000_000, true);
+        // assert_eq!(map.string_data.len() < 1_000_000, true);
 
         dbg!(counter);
 
@@ -406,10 +414,10 @@ mod tests {
         assert_eq!(hashmap.get_or_create("blub2", 0), &4);
         assert_eq!(hashmap.get_or_create("blub3", 0), &5);
 
-        assert_eq!(
-            hashmap.keys().collect::<Vec<_>>(),
-            &["blub1", "blub2", "blub3"]
-        );
+        // assert_eq!(
+        //     hashmap.keys().collect::<Vec<_>>(),
+        //     &["blub1", "blub2", "blub3"]
+        // );
         assert_eq!(hashmap.values().collect::<Vec<_>>(), &[&5, &4, &3]);
         assert_eq!(hashmap.values_mut().collect::<Vec<_>>(), &[&5, &4, &3]);
         assert_eq!(

@@ -118,6 +118,19 @@ mod tests {
         });
     }
     #[bench]
+    fn bench_hasmap_full_fixed_length_strings(b: &mut Bencher) {
+        let contents = get_test_string_full();
+
+        b.iter(|| {
+            let mut map = StringHashMap::<u32>::with_power_of_two_size(10);
+            for text in contents.split_whitespace().filter(|el|el.len()==8) {
+                let value = map.get_or_create(text, 0);
+                *value += 1;
+            }
+        });
+    }
+
+    #[bench]
     fn bench_hasmap_full_get(b: &mut Bencher) {
         let contents = get_test_string_full();
 
@@ -145,6 +158,26 @@ mod tests {
             for text in contents.split_whitespace() {
                 map.mutate_or_create(text, |el| if let Some(el) = el { el + 1 } else { 0 });
             }
+        });
+    }
+    #[bench]
+    fn bench_tant_termmap_full_get_fixed_length_strings(b: &mut Bencher) {
+        let contents = get_test_string_full();
+
+        let mut map = create_tant_hashmap(&contents);
+
+        b.iter(|| {
+            for text in contents.split_whitespace().filter(|el|el.len()==8) {
+                map.mutate_or_create(text, |el| if let Some(el) = el { el + 1 } else { 0 });
+            }
+        });
+    }
+
+    #[bench]
+    fn baseline_copy_strings_full(b: &mut Bencher) {
+        let contents = get_test_string_full();
+        b.iter(|| {
+            contents.split_whitespace().map(|el|el.to_string()).collect::<Vec<String>>()
         });
     }
 
