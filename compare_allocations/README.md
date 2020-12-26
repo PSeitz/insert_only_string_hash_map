@@ -3,6 +3,8 @@
 
 Experiment if strings are all 8bytes long and it is know up front. A lot of memory can be saved. Performance is unaffected.
 
+This is relevant when ids are saved, as they are usually fixed length and can amount for a big amount of unique strings.
+
 ```
 dhat: Total:     941,760 bytes in 140 blocks
 dhat: At t-gmax: 65,536 bytes in 3 blocks
